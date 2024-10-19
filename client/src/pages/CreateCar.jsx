@@ -1,42 +1,167 @@
-import React, { useState } from 'react';
-import { createCustomCar } from '../services/CustomCarAPI';  // Correct API call
 import '../App.css';
+import '../css/CreateCar.css';
+import React, { useState, useEffect } from 'react';
+import { createCar } from '../services/CarsAPI';
+import { useNavigate } from 'react-router-dom';
 
-const CreateCar = () => {
-    const [name, setName] = useState('');
-    const [features, setFeatures] = useState({});
-    const [price, setPrice] = useState(0);
+const componentPrices = {
+  color: { Blue: 500, Red: 600, Black: 450, White: 400 },
+  engine: { 'Inline-4': 2000, 'V8': 3000, 'V6': 4000, 'Electric': 5000 },
+  wheels: { '19 inch': 1500, '18 inch': 1000, '17 inch': 800, '20 inch': 900 },
+  interior: { Leather: 3000, Fabric: 1500 },
+  transmission: { Automatic: 2000, Manual: 1000 }
+};
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        const newCar = { name, features, total_price: price };
-        await createCustomCar(newCar);
-        // Redirect or display a success message
-    };
+const basePrice = 10000; // Base price for the car
 
-    return (
-        <div className="create-car">
-            <h2>Create New Car</h2>
-            <form onSubmit={handleSubmit}>
-                <input
-                    type="text"
-                    placeholder="Car Name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                />
-                <input
-                    type="number"
-                    placeholder="Price"
-                    value={price}
-                    onChange={(e) => setPrice(Number(e.target.value))}
-                    required
-                />
-                {/* Add fields for selecting features */}
-                <button type="submit">Create Car</button>
-            </form>
+const CreateCar = ({ title }) => {
+  const [name, setName] = useState('');
+  const [options, setOptions] = useState({
+    color: 'Red',
+    engine: 'V6',
+    wheels: '19 inch',
+    interior: 'Leather',
+    transmission: 'Automatic'
+  });
+  const [price, setPrice] = useState(basePrice);
+  const navigate = useNavigate();
+  const [error, setError] = useState(''); // Error message state
+  const [warning, setWarning] = useState(''); // Warning message state
+
+  // Calculate total price whenever options change
+  useEffect(() => {
+    const calculatedPrice =
+      basePrice +
+      componentPrices.color[options.color] +
+      componentPrices.engine[options.engine] +
+      componentPrices.interior[options.interior] +
+      componentPrices.transmission[options.transmission] +
+      componentPrices.wheels[options.wheels];
+    setPrice(calculatedPrice);
+  }, [options]);
+
+  const handleOptionChange = (e) => {
+    const { name, value } = e.target;
+
+    // Check for invalid combination (Electric + Manual)
+    if (name === 'transmission' && options.engine === 'Electric' && value === 'Manual') {
+      setWarning('Manual transmission is not available for Electric cars.');
+    } else if (name === 'engine' && value === 'Electric' && options.transmission === 'Manual') {
+      setWarning('Manual transmission is not available for Electric cars.');
+    } else {
+      setWarning(''); // Clear warning when valid combinations are selected
+    }
+
+    setOptions({ ...options, [name]: value });
+  };
+
+  // Validation check for invalid combinations
+  const validateOptions = () => {
+    if (options.engine === 'Electric' && options.transmission === 'Manual') {
+      return 'Electric cars cannot have manual transmission.';
+    }
+    return ''; // No error if valid
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const validationError = validateOptions();
+    if (validationError) {
+      setError(validationError); // Set error message if invalid
+      return; // Prevent submission
+    }
+    const newCar = { name, options, price };
+    await createCar(newCar);
+    navigate('/customcars');
+  };
+
+  const isTransmissionDisabled = (transmission) => {
+    if (options.engine === 'Electric' && transmission === 'Manual') {
+      return true;
+    }
+    return false;
+  };
+
+  return (
+    <div className='form-container'>
+      <h2>{title}</h2>
+      <form onSubmit={handleSubmit}>
+        <div>
+          <label>Car Name:</label>
+          <input
+            type='text'
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
         </div>
-    );
+
+        <div>
+          <label>Color:</label>
+          <select name='color' value={options.color} onChange={handleOptionChange}>
+            {Object.keys(componentPrices.color).map((color) => (
+              <option key={color} value={color}>
+                {color} (${componentPrices.color[color]})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label>Engine:</label>
+          <select name='engine' value={options.engine} onChange={handleOptionChange}>
+            {Object.keys(componentPrices.engine).map((engine) => (
+              <option key={engine} value={engine}>
+                {engine} (${componentPrices.engine[engine]})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label>Interior:</label>
+          <select name='interior' value={options.interior} onChange={handleOptionChange}>
+            {Object.keys(componentPrices.interior).map((interior) => (
+              <option key={interior} value={interior}>
+                {interior} (${componentPrices.interior[interior]})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label>Transmission:</label>
+          <select name='transmission' value={options.transmission} onChange={handleOptionChange}>
+            {Object.keys(componentPrices.transmission).map((transmission) => (
+              <option key={transmission} value={transmission} disabled={isTransmissionDisabled(transmission)}>
+                {transmission} (${componentPrices.transmission[transmission]})
+              </option>
+            ))}
+          </select>
+          {warning && <div className="warning-message">{warning}</div>} {/* Show warning if incompatible */}
+        </div>
+
+        <div>
+          <label>Wheels:</label>
+          <select name='wheels' value={options.wheels} onChange={handleOptionChange}>
+            {Object.keys(componentPrices.wheels).map((wheels) => (
+              <option key={wheels} value={wheels}>
+                {wheels} (${componentPrices.wheels[wheels]})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <strong>Total Price: ${price}</strong>
+        </div>
+
+        {error && <div className="error-message">{error}</div>} {/* Display error message */}
+
+        <button type='submit' disabled={!!warning}>Create Car</button> {/* Disable submit if warning exists */}
+      </form>
+    </div>
+  );
 };
 
 export default CreateCar;

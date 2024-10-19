@@ -1,44 +1,46 @@
-import React, { useEffect, useState } from 'react';
-import { getAllCustomCars, deleteCustomCar } from '../services/CustomCarAPI';  
-import { Link } from 'react-router-dom';  // For linking to car details and editing
 import '../App.css';
+import React, { useEffect, useState } from 'react';
+import { getAllCars, deleteCar } from '../services/CarsAPI';
+import { Link } from 'react-router-dom';
+import '../css/ViewCars.css';
 
-const ViewCars = () => {
-    const [cars, setCars] = useState([]);
+const ViewCars = ({ title }) => {
+  const [cars, setCars] = useState([]);
 
-    useEffect(() => {
-        const fetchCars = async () => {
-            const data = await getAllCustomCars();
-            setCars(data);
-        };
-        fetchCars();
-    }, []);
-
-    const handleDelete = async (id) => {
-        await deleteCustomCar(id);
-        setCars(cars.filter(car => car.id !== id));
+  useEffect(() => {
+    const fetchCars = async () => {
+      const data = await getAllCars();
+      setCars(data);
     };
+    fetchCars();
+  }, []);
 
-    return (
-        <div className="view-cars">
-            <h2>All Cars</h2>
-            {cars.length === 0 ? (
-                <p>No cars found</p>
-            ) : (
-                <ul>
-                    {cars.map(car => (
-                        <li key={car.id}>
-                            <Link to={`/car/${car.id}`}>
-                                {car.name} - ${car.total_price}
-                            </Link>
-                            <button onClick={() => handleDelete(car.id)}>Delete</button>
-                            <Link to={`/edit-car/${car.id}`}>Edit</Link>
-                        </li>
-                    ))}
-                </ul>
-            )}
-        </div>
-    );
+  const handleDelete = async (id) => {
+    await deleteCar(id);
+    setCars(cars.filter((car) => car.id !== id));
+  };
+
+  return (
+    <div className="view-cars-container">
+      <h1>{title}</h1>
+      <div className="cars-list">
+        {cars.map((car) => (
+          <div key={car.id} className="car-item">
+            <h3>{car.name}</h3>
+            <p>Price: ${car.total_price}</p>
+            <p>Color: {car.features.color}</p>
+            <p>Engine: {car.features.engine}</p>
+            <p>Wheels: {car.features.wheels}</p>
+            <p>Interior: {car.features.interior}</p>
+            <p>Transmission: {car.features.transmission}</p>
+            <Link to={`/customcars/${car.id}`} className="view-btn">View</Link>
+            <Link to={`/edit/${car.id}`} className="edit-btn">Edit</Link>
+            <button onClick={() => handleDelete(car.id)} className="delete-btn">Delete</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 };
 
 export default ViewCars;

@@ -1,58 +1,44 @@
-import { pool } from './database.js';
-import fs from 'fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { pool } from './database.js'
+import './dotenv.js'
+import { Cars } from '../data/Cars.js'
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const createCarTable = async () => {
+    const createTableQuery = `
+        DROP TABLE IF EXISTS custom_items CASCADE;
+        DROP TABLE IF EXISTS custom_cars CASCADE;
 
-// Create table query
-const createTableQuery = `
-    CREATE TABLE IF NOT EXISTS custom_cars (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        features JSONB NOT NULL,
-        total_price DECIMAL NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-`;
+        CREATE TABLE IF NOT EXISTS custom_cars (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(100),
+            features JSONB,
+            total_price DECIMAL
+        );
+    `
 
-// Function to insert cars into the database
-const insertCars = async (cars) => {
-    const insertQuery = `
-        INSERT INTO custom_cars (name, features, total_price)
-        VALUES ($1, $2, $3)
-        RETURNING *;
-    `;
+    try {
+        await pool.query(createTableQuery);
+        console.log('🎉 Cars table created successfully');
+    } catch (err) {
+        console.error('⚠️ error creating Cars table', err);
+    }
+}
 
-    for (const car of cars) {
+const seedCarTable = async () => {
+    await createCarTable();
+
+    for (const car of Cars) {
+        const insertQuery = {
+            text: 'INSERT INTO custom_cars (name, features, total_price) VALUES ($1, $2, $3)',
+            values: [car.name, car.features, car.total_price],
+        };
+
         try {
-            // Ensure features is a JSON string
-            const featuresJson = JSON.stringify(car.features);
-            await pool.query(insertQuery, [car.name, featuresJson, car.total_price]);
-            console.log(`Inserted car: ${car.name}`);
-        } catch (error) {
-            console.error("Error inserting car", car.name, error);
+            await pool.query(insertQuery);
+            console.log(`✅ ${car.name} added successfully`);
+        } catch (err) {
+            console.error(`⚠️ error inserting car: ${car.name}`, err);
         }
     }
-};
+}
 
-// Load and insert data
-const resetDatabase = async () => {
-    try {
-        const data = await fs.readFile(path.resolve(__dirname, '../data/Cars.json'), 'utf8');
-        const cars = JSON.parse(data);
-        
-        await pool.query(createTableQuery);
-        console.log("Table created");
-        
-        await insertCars(cars);
-        console.log("All cars inserted");
-    } catch (err) {
-        console.error("Error creating table or inserting cars", err);
-    } finally {
-        await pool.end();
-    }
-};
-
-resetDatabase();
+seedCarTable();

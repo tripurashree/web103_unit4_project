@@ -1,12 +1,13 @@
 import express from 'express';
-import { getCustomCars, createCustomCar, updateCustomCar, deleteCustomCar } from '../controllers/customCarController.js';
+import { getCustomCars, createCustomCar } from '../controllers/customCarController.js';
+import { updateCustomCar, deleteCustomCar ,getCustomCar} from '../controllers/customCarController.js';
 
 const router = express.Router();
 
-router.get('/customcars', (req, res) => getCustomCars(req, res));
-  
-router.post('/', createCustomCar);
-router.put('/:id', updateCustomCar);
-router.delete('/:id', deleteCustomCar);
+router.get('/items', getCustomCars);
+router.get('/items/:id',getCustomCar);
+router.post('/items', createCustomCar);
+router.put('/items/:id', updateCustomCar);
+router.delete('/items/:id', deleteCustomCar);
 
 export default router;
